@@ -1,5 +1,5 @@
 .idea/
-out/
+.vscode/
 # Compiled class file
 *.class
 

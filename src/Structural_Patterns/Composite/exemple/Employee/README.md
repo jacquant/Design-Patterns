@@ -1,0 +1,1 @@
+![](composite_pattern_uml_diagram.jpg)

@@ -2,6 +2,8 @@
 
 ## Composite
 
+![](Composite_UML_class_diagram_fr.svg.png)
+
 ### Intention 
 
 Organiser les objets dans un arbre hiérarchique pour traiter les objets de manière individuelle ou composée uniformément.

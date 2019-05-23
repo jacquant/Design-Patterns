@@ -1,0 +1,1 @@
+![](flyweight_pattern_uml_diagram.jpg)

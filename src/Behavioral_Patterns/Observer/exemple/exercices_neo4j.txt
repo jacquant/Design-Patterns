@@ -1,0 +1,159 @@
+EXERCICES SUR LA BD MOVIES
+
+1) Lister les acteurs, leur nombre de film et les titres des
+films par ordre décroissant du nombre de films
+	MATCH (a)-[:ACTED_IN]->(m)
+	WITH a.name AS Actor, count(m) AS NbMovies, collect(m.title) as Movies
+	ORDER BY NbMovies DESC
+	RETURN Actor, NbMovies, Movies
+
+
+2) Lister les réalisateurs qui ont fait jouer "Hugo Weaving" et pour chacun d'eux, la liste des films en question
+	MATCH (a:Person {name:"Hugo Weaving"})-[:ACTED_IN]-(m:Movie),
+	(d:Person)-[:DIRECTED]-(m)
+	WITH d.name as Director, collect(m.title) as Movies
+	RETURN Director, Movies
+
+
+3) Morgan Freeman a-t-il déjà joué avec un réalisateur qui aurait tourné des films de genre "Sci-Fi" ? Si oui lesquels ?
+	Pas trouvé le label genre ... 
+
+4) Lister le nombre de fois qu'un réalisateur a fait jouer
+un acteur particulier dans ses films
+	MATCH (d:Person)-[:DIRECTED]->(m:Movie)<-[:ACTED_IN]-(a:Person)
+	WITH d.name AS Director, a.name AS Actor, count(m) as NbMovies
+	RETURN Director, Actor, NbMovies
+
+
+5) Quel est le chemin de relations le plus court si Keanu Reeves souhaitait prendre contact avec Francis Ford Coppola ?
+	Il n'y en a pas ?? 
+	Par contre, entre Halle Berry et Regina King : 
+	MATCH p=shortestpath((:Person{name:"Halle Berry"})-[*]-(:Person{name:"Regina King"}))
+	RETURN p
+
+
+6) Retourner la liste des films pour lesquels les acteurs sont nés avant 1950
+	MATCH (p)-[:ACTED_IN]->(m)
+	WHERE (p.born<=1950)
+	WITH m.title AS Movies, p.name AS Actor, p.born AS Born
+	ORDER BY Born DESC
+	RETURN Movies, Actor, Born
+
+AUTRES EXERCICES FAITS EN COURS 
+1) Lister les réalisateurs de film 
+	MATCH (r:Person)-[:DIRECTED]->(m)
+	WITH r.name AS Director
+	RETURN DISTINCT Director
+	ORDER BY Director ASC
+
+2) Lister les acteurs qui ont joué plusieurs fois dans un film avec Keanu Reeves (préciser quels films et quels acteurs)
+	MATCH (a)-[:ACTED_IN]->(m)<-[:ACTED_IN]-(kr{name:"Keanu Reeves"})
+	WITH a.name AS Actor, count(m) as Movies
+	WHERE Movies>=2
+	RETURN Actor, Movies
+
+3) Quel est le lien le plus direct entre Halle Berry et Regina King (sans considérer les relations FOLLOWS/REVIEWED)
+	MATCH p = shortestpath((hb{name:"Halle Berry"})-[*]-(rk{name:"Regina King"}))
+	WHERE NONE (r in relationships(p) WHERE type(r)="REVIEWED" OR type(r)="FOLLOWS")
+	RETURN p
+
+4) Lister les films qui sont sortis après 90 dans lesquels Tom Hanks a joué
+	MATCH (th{name:"Tom Hanks"})-[:ACTED_IN]->(m)
+	WHERE m.released>=1990
+	WITH m.title AS Movies
+	RETURN Movies
+
+5) Pour chaque réalisateur, définir son acteur fétiche (celui avec lequel il a le plus dirigé (au moins 2 fois))
+	MATCH (r)-[:DIRECTED]->(m)<-[:ACTED_IN]-(a)
+	WITH r.name AS Director, a.name AS Actor, count(m) AS Nb_Movies
+	WHERE Nb_Movies>=2
+	WITH Director, Actor
+	ORDER BY Director, Nb_Movies DESC
+	RETURN Director, COLLECT(Actor)[0]
+
+6) Déterminer l’acteur qui a joué dans le plus de films
+	MATCH (a)-[:ACTED_IN]->(m)
+	WITH a.name AS Actor, count(m) AS Nb_Movies
+	ORDER BY Nb_Movies DESC
+	RETURN collect(Actor)[0] AS Actor, collect(Nb_Movies)[0] AS Nb_Movies
+
+	Ou encore : 
+	MATCH (a)-[:ACTED_IN]->(m)
+	WITH a.name AS Actor, count(m) AS Nb_Movies
+	RETURN Actor, Nb_Movies
+	ORDER BY Nb_Movies DESC
+	LIMIT 1
+
+7) Trouver les acteurs qui sont aussi réalisateurs (bonus lister les films en tant qu’acteur et les films en tant que réalisateur)
+	MATCH (a)-[:ACTED_IN]->(m), (a)-[:DIRECTED]->(n)
+	RETURN a.name AS Person, COLLECT(DISTINCT m.title) AS Acted_In, COLLECT(DISTINCT n.title) AS Directed
+
+8) Trouver les personnes qui ont joué dans et réalisé un même film
+	MATCH (a)-[:ACTED_IN]->(m)<-[:DIRECTED]-(a)
+	RETURN a.name AS Actor_And_Director
+
+9) Trouver les acteurs qui avaient moins de 30 ans lorsqu’ils ont joué dans un de leurs films, lister les acteurs/film/age au moment du tournage
+	MATCH (a)-[:ACTED_IN]->(m)
+	WITH m.released-a.born AS Age, a.name AS Actor, m.title AS Movie
+	WHERE Age<30
+	RETURN Actor, Movie, Age
+
+10)Trouver les acteurs qui ont joué dans un film avant que leurs collègues ne soient nés
+	MATCH (a)-[:ACTED_IN]->()<-[:ACTED_IN]-(b)
+	MATCH (a)-[:ACTED_IN]->(m)
+	WITH m.released-b.born AS Diff, a.name AS Senior, b.name AS Junior
+	WHERE Diff<=0
+	RETURN DISTINCT Senior, Junior 
+11) Lister les films dans lesquels Tom Hanks a joué
+	MATCH ({name:"Tom Hanks"})-[:ACTED_IN]->(m)
+	RETURN m.title AS Movie
+
+12) Liens entre Tom Hanks et Keanu Reeves 
+	Tous les chemins possibles : 
+		Trop nombreux 
+	Liens de longueur maximale 4 :
+		MATCH p=({name:"Tom Hanks"})-[*1..4]-({name:"Keanu Reeves"})
+		RETURN p
+	Lien  le plus court : 
+		MATCH p=shortestpath(({name:"Tom Hanks"})-[*]-({name:"Keanu Reeves"}))
+		RETURN p
+	
+
+EXERCICES SUR LA BD FAMILLE
+
+On crée une famille avec quelques personnes : 
+
+CREATE(lu:Person{prenom:"Lucien"}),
+(je:Person{prenom:"Jérôme"}),
+(jo:Person{prenom:"Joseph"}),
+(ca:Person{prenom:"Caroline"}),
+(pa:Person{prenom:"Pauline"}),
+(el:Person{prenom:"Elisa"}),
+(le:Person{prenom:"Letizia"}),
+(ch:Person{prenom:"Charles"}),
+(lu)-[:CHILD_OF]->(ch),
+(je)-[:CHILD_OF]->(ch),
+(jo)-[:CHILD_OF]->(ch),
+(ca)-[:CHILD_OF]->(ch),
+(pa)-[:CHILD_OF]->(ch),
+(el)-[:CHILD_OF]->(ch),
+(lu)-[:CHILD_OF]->(le),
+(je)-[:CHILD_OF]->(le),
+(jo)-[:CHILD_OF]->(le),
+(ca)-[:CHILD_OF]->(le),
+(pa)-[:CHILD_OF]->(le),
+(el)-[:CHILD_OF]->(le)
+
+1) Récupérer tous les noeuds 
+	MATCH (a)
+	RETURN a
+
+2) Récupérer tous les parents
+	MATCH (a)-[:CHILD_OF]->(b)
+	RETURN DISTINCT b.prenom AS Parents
+
+3) Compter le nombre d’enfants par parents, stocker dans un tableau reprenant le nom du parent et le nombre d’enfants
+	MATCH (a)-[:CHILD_OF]->(b)
+	WITH count(a) AS Nb_Enfants, b.prenom AS Parents
+	RETURN Parents, Nb_Enfants
+
